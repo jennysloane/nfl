@@ -106,7 +106,7 @@ high_score_points = 40
   
 - When we look at the response, we see the Status = 200 which is exactly what we want to see (after many failed attempts)! This means the request has succeeded yay :smile:
 ```{r}
-setwd(here("../"))
+setwd(here("secret/"))
 source("login_creds.R")
 
 res = GET(glue('https://api.mysportsfeeds.com/v2.0/pull/nfl/2021-{season}/week/{n_week}/games.json'), 

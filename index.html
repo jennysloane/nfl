@@ -271,14 +271,14 @@ high_score_points = 40</code></pre>
 </ul></li>
 <li><p>When we look at the response, we see the Status = 200 which is exactly what we want to see (after many failed attempts)! This means the request has succeeded yay :smile:</p></li>
 </ul>
-<pre class="r"><code>setwd(here(&quot;../&quot;))
+<pre class="r"><code>setwd(here(&quot;secret/&quot;))
 source(&quot;login_creds.R&quot;)
 
 res = GET(glue(&#39;https://api.mysportsfeeds.com/v2.0/pull/nfl/2021-{season}/week/{n_week}/games.json&#39;), 
           add_headers(Authorization = paste(&quot;Basic&quot;, auth)))
 res </code></pre>
 <pre><code>## Response [https://api.mysportsfeeds.com/v2.0/pull/nfl/2021-pre/week/1/games.json]
-##   Date: 2022-05-29 19:18
+##   Date: 2022-05-29 19:25
 ##   Status: 200
 ##   Content-Type: application/json
 ##   Size: 39.5 kB</code></pre>
