@@ -1,0 +1,145 @@
+---
+title: "Quarter Backs"
+output: html_document
+---
+
+<style type="text/css">
+
+body {
+  font-size: 14pt;
+}
+
+h1 { /* Header 1 */
+  font-size: 34px;
+  color: darkcyan;
+  font-weight: bold;
+}
+</style>
+
+[FantasyPros Draft Pick](https://www.fantasypros.com/nfl/rankings/qb-cheatsheets.php){target="_blank"}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, include=TRUE, warning=FALSE, message = FALSE)
+```
+
+```{r}
+library(here)
+library(tidyverse) 
+library(janitor)
+library(httr)
+library(jsonlite)
+library(RCurl)
+library(glue)
+library(mysportsfeedsR)
+library(kableExtra)
+library(gt)
+library(shiny)
+library(reactable)
+library(ggrepel)
+library(ggeasy)
+
+setwd(here("../"))
+source("login_creds.R")
+```
+
+<!-- # API request -->
+```{r, inclue=FALSE}
+res = GET('https://api.mysportsfeeds.com/v2.0/pull/nfl/2020-2021-regular/player_stats_totals.json', 
+          add_headers(Authorization = paste("Basic", auth)))
+api_response <- content(res, as="text")
+api_response <- jsonlite::fromJSON(api_response, flatten=TRUE)
+
+player_stats <- api_response$playerStatsTotals %>%
+  as_tibble() %>%
+  clean_names()  %>%
+  select(first_name = player_first_name, last_name = player_last_name, position = player_primary_position, team = team_abbreviation, games_played = stats_games_played, pass_attempts = stats_passing_pass_attempts, pass_comp = stats_passing_pass_completions, pass_pct = stats_passing_pass_pct, pass_yards = stats_passing_pass_yards, pass_td = stats_passing_pass_td, pass_int = stats_passing_pass_int, pass_20plus = stats_passing_pass20plus, pass_40plus = stats_passing_pass40plus, qb_rating = stats_passing_qb_rating, sacks = stats_passing_pass_sacks, sack_y = stats_passing_pass_sack_y, rush_yards = stats_rushing_rush_yards, rush_td = stats_rushing_rush_td, stats_rushing_rush_fumbles)
+```
+
+- Indexed games so everyone is scored based on playing all 16 games
+- `Golden Ratio`: a composite score including:
+   - Passing yards 35% weight 
+   - Passing td 35% weight 
+   - Rushing yards 15% weight 
+   - Rushing td 15% weight
+- Top 25
+```{r}
+qb_stats <- player_stats %>%
+  select(first_name, last_name, position, team, games_played, pass_yards, pass_td, rush_yards, rush_td, pass_int, sacks, pass_comp, pass_20plus, qb_rating) %>%
+  mutate(yards_per_game = pass_yards/games_played) %>%
+  filter(position == "QB") %>% #& games_played > n_min_games_played
+  select(-position) %>%
+  mutate(games_index = games_played/16) %>%
+  relocate(games_index, .before = pass_yards) %>%
+  mutate(full_name = paste(first_name, last_name),
+         pass_yards = pass_yards/games_index, # across(pass_yards:sacks, ~ .x/games_index) this works but over writes variable name so no good
+         pass_td = pass_td/games_index, 
+         rush_yards = rush_yards/games_index, 
+         rush_td = rush_td/games_index, 
+         #sacks = sacks/games_index,
+         pass_yards_i= pass_yards/max(pass_yards),
+         pass_td_i = pass_td/max(pass_td), 
+         rush_yards_i = rush_yards/max(rush_yards), 
+         rush_td_i = rush_td/max(rush_td), 
+         #sacks_i = sacks/max(sacks), 
+         golden_ratio = (pass_yards_i*1.35)+(pass_td_i*1.35)+(rush_yards_i*1.15)+(rush_td_i*1.15)) %>%
+  arrange(desc(golden_ratio)) %>%
+  filter(full_name != "Marcus Mariota") %>%
+  #select(full_name, team, games_played, pass_yards, pass_td, rush_yards, rush_td, sacks, golden_ratio) %>%
+  mutate(rank = 1:length(golden_ratio)) %>%
+  relocate(rank) %>%
+  filter(rank < 25) %>%
+  mutate_if(is.numeric, round, 2)
+
+qb_stats_picks <- qb_stats %>%
+  select(rank, full_name, team, games_played, pass_yards, pass_td, rush_yards, rush_td, golden_ratio, pass_int, sacks, pass_20plus) %>%
+  rename(Rank = rank, 
+         "Name" = full_name,
+         Team = team,
+         "Games Played" = games_played,
+         "Pass Yards" = pass_yards, 
+         "Pass TDs" = pass_td,
+         "Rush Yards" = rush_yards, 
+         "Rush TDs" = rush_td,
+         "Int" = pass_int, 
+         "Sacks" = sacks,
+         "Pass 20+" = pass_20plus, 
+         "Golden Ratio" = golden_ratio)
+
+#write.csv(rb_stats, "rb_picks.csv")
+
+reactable(qb_stats_picks, selection = "multiple", defaultPageSize = 24, highlight=TRUE, striped=TRUE, width=1000)
+
+```
+
+# Passing Game
+```{r}
+qb_stats_plot <- qb_stats %>%
+  filter(rank < 20)
+
+ggplot(qb_stats_plot, aes(pass_yards, pass_td, label = last_name)) +
+  geom_point() +
+  geom_text_repel() +
+  theme_bw() +
+  labs(x="Passing Yards", y="Passing TDs") +
+  easy_text_size(15)
+```
+
+# Rushing Game
+```{r}
+ggplot(qb_stats_plot, aes(rush_yards, rush_td, label = last_name)) +
+  geom_point() +
+  geom_text_repel() +
+  theme_bw() +
+  labs(x="Rushing Yards", y="Rushing TDs") +
+  easy_text_size(15)
+```
+
+# QB Rating
+```{r}
+ggplot(qb_stats, aes(qb_rating)) +
+  geom_histogram(bins = 20, fill="darkblue") +
+  theme_bw() +
+  labs(x = "QB Rating") +
+  easy_text_size(15)
+```
+

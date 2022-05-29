@@ -1,0 +1,32 @@
+rank,first_name,last_name,team,games_played,rush_yards,rush_attempts,rush_avg,rush_td,rush_20plus,receive_yards,receive_targ,receive_avg,receive_td
+1,Derrick,Henry,TEN,16,2027,378,5.4,17,12,114,31,6,0
+2,Dalvin,Cook,MIN,14,1557,312,5,16,5,361,54,8.2,1
+3,Jonathan,Taylor,IND,15,1169,232,5,11,4,299,41,8.3,1
+4,Aaron,Jones,GB,14,1104,201,5.5,9,2,355,63,7.6,2
+5,David,Montgomery,CHI,15,1070,247,4.3,8,3,438,68,8.1,2
+6,James,Robinson,JAX,14,1070,240,4.5,7,4,344,60,7,3
+7,Nick,Chubb,CLE,12,1067,190,5.6,12,9,150,18,9.4,0
+8,Melvin,Gordon,DEN,15,986,215,4.6,9,3,158,44,4.9,1
+9,Ronald,Jones,TB,14,978,192,5.1,7,5,165,42,5.9,1
+10,Alvin,Kamara,NO,15,932,187,5,16,5,756,107,9.1,5
+11,Miles,Sanders,PHI,12,867,164,5.3,6,1,197,52,7,0
+12,Kareem,Hunt,CLE,16,841,198,4.2,6,3,304,51,8,5
+13,J.K.,Dobbins,BAL,15,805,134,6,9,6,120,24,6.7,0
+14,Clyde,Edwards-Helaire,KC,13,803,181,4.4,4,3,297,55,8.2,1
+15,Antonio,Gibson,WAS,14,795,170,4.7,11,4,247,44,6.9,0
+16,Gus,Edwards,BAL,16,723,144,5,6,8,129,14,14.3,0
+17,James,Conner,PIT,13,720,169,4.3,6,4,215,43,6.1,0
+18,David,Johnson,HOU,15,691,147,4.7,6,3,314,46,9.5,2
+19,Devin,Singletary,BUF,16,686,156,4.4,2,2,269,52,7.1,0
+20,Wayne,Gallman Jr,NYG,15,682,147,4.6,6,2,114,27,5.4,0
+21,Chris,Carson,SEA,12,681,141,4.8,5,3,287,46,7.8,4
+22,Latavius,Murray,NO,15,656,146,4.5,4,3,176,26,7.7,1
+23,Cam,Akers,LA,13,625,145,4.3,2,2,123,14,11.2,1
+24,Darrell,Henderson,LA,15,625,138,4.5,5,2,159,24,9.9,1
+25,Jeff,Wilson Jr.,SF,12,603,126,4.8,7,3,133,28,10.2,3
+26,D'Andre,Swift,DET,13,521,114,4.6,8,0,357,57,7.8,2
+27,Jamaal,Williams,GB,14,505,119,4.2,2,1,236,35,7.6,1
+28,Phillip,Lindsay,DEN,11,502,118,4.3,1,5,28,14,4,0
+29,Zack,Moss,BUF,13,481,112,4.3,4,4,95,18,6.8,1
+30,Tony,Pollard,DAL,16,435,101,4.3,4,2,191,40,6.8,1
+31,Malcolm,Brown,LA,16,418,101,4.1,5,0,162,34,7,0

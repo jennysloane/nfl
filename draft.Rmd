@@ -1,0 +1,39 @@
+---
+title: "draft"
+output: html_document
+---
+
+https://www.fantasypros.com/nfl/rankings/qb-cheatsheets.php
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, include=FALSE, warning=FALSE, message = FALSE)
+```
+
+# load libraries
+```{r}
+library(here)
+library(tidyverse) 
+library(janitor)
+library(httr)
+library(jsonlite)
+library(RCurl)
+library(glue)
+library(mysportsfeedsR)
+```
+
+# API request
+```{r}
+setwd(here("../"))
+source("login_creds.R")
+
+res = GET('https://api.mysportsfeeds.com/v2.0/pull/nfl/2020-2021-regular/player_stats_totals.json', 
+          add_headers(Authorization = paste("Basic", auth)))
+api_response <- content(res, as="text")
+api_response <- jsonlite::fromJSON(api_response, flatten=TRUE)
+
+
+player_stats <- api_response$playerStatsTotals %>%
+  as_tibble() %>%
+  clean_names()  %>%
+  select(player_first_name, player_last_name, player_primary_position, team_id, player_current_team_abbreviation, team_abbreviation, player_current_roster_status, stats_games_played, stats_passing_pass_attempts, stats_passing_pass_completions, stats_passing_pass_pct, stats_passing_pass_yards, stats_passing_pass_td, stats_passing_pass_td_pct, stats_passing_pass_int, stats_passing_pass_lng, stats_passing_pass20plus, stats_passing_pass40plus, stats_passing_qb_rating, stats_passing_pass_sacks, stats_rushing_rush_attempts, stats_rushing_rush_yards, stats_rushing_rush_average, stats_rushing_rush_td, stats_rushing_rush_lng, stats_rushing_rush20plus, stats_rushing_rush40plus, stats_rushing_rush_fumbles, stats_receiving_targets, stats_receiving_receptions, stats_receiving_rec_yards, stats_receiving_rec_average, stats_receiving_rec_td, stats_receiving_rec_lng, stats_receiving_rec20plus, stats_receiving_rec40plus, stats_fumbles_fumbles, stats_kickoff_returns_kr_lng, stats_kickoff_returns_kr20plus, stats_punt_returns_pr_avg, stats_miscellaneous_games_started, stats_field_goals_fg_made, stats_field_goals_fg_att, stats_field_goals_fg_pct, stats_field_goals_fg30_39pct, stats_field_goals_fg40_49pct, stats_field_goals_fg50plus_pct, stats_extra_point_attempts_xp_made, stats_extra_point_attempts_xp_att, stats_extra_point_attempts_xp_pct)
+```

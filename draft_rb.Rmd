@@ -1,0 +1,125 @@
+---
+title: "Running Backs"
+output: html_document
+---
+<style type="text/css">
+
+body {
+  font-size: 14pt;
+}
+
+h1 { /* Header 1 */
+  font-size: 34px;
+  color: dodgerblue;
+  font-weight: bold;
+}
+</style>
+
+
+[FantasyPros Draft Pick](https://www.fantasypros.com/nfl/rankings/rb-cheatsheets.php){target="_blank"}
+[Draft slot picks](https://www.espn.com/fantasy/football/insider/story/_/id/32081786/fantasy-football-draft-help-best-picks-slot-rounds-1-2)
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message = FALSE)
+```
+
+```{r, include=FALSE}
+library(here)
+library(tidyverse) 
+library(janitor)
+library(httr)
+library(jsonlite)
+library(RCurl)
+library(glue)
+library(mysportsfeedsR)
+library(kableExtra)
+library(gt)
+library(shiny)
+library(reactable)
+library(ggrepel)
+library(ggeasy)
+
+setwd(here("../"))
+source("login_creds.R")
+```
+
+<!-- # API request -->
+```{r, include=FALSE}
+res = GET('https://api.mysportsfeeds.com/v2.0/pull/nfl/2020-2021-regular/player_stats_totals.json', 
+          add_headers(Authorization = paste("Basic", auth)))
+api_response <- content(res, as="text")
+api_response <- jsonlite::fromJSON(api_response, flatten=TRUE)
+
+player_stats <- api_response$playerStatsTotals %>%
+  as_tibble() %>%
+  clean_names()  %>%
+  select(player_first_name, player_last_name, player_primary_position, team_id, player_current_team_abbreviation, team_abbreviation, player_current_roster_status, stats_games_played, stats_passing_pass_attempts, stats_passing_pass_completions, stats_passing_pass_pct, stats_passing_pass_yards, stats_passing_pass_td, stats_passing_pass_td_pct, stats_passing_pass_int, stats_passing_pass_lng, stats_passing_pass20plus, stats_passing_pass40plus, stats_passing_qb_rating, stats_passing_pass_sacks, stats_rushing_rush_attempts, stats_rushing_rush_yards, stats_rushing_rush_average, stats_rushing_rush_td, stats_rushing_rush_lng, stats_rushing_rush20plus, stats_rushing_rush40plus, stats_rushing_rush_fumbles, stats_receiving_targets, stats_receiving_receptions, stats_receiving_rec_yards, stats_receiving_rec_average, stats_receiving_rec_td, stats_receiving_rec_lng, stats_receiving_rec20plus, stats_receiving_rec40plus, stats_fumbles_fumbles, stats_kickoff_returns_kr_lng, stats_kickoff_returns_kr20plus, stats_punt_returns_pr_avg, stats_miscellaneous_games_started, stats_field_goals_fg_made, stats_field_goals_fg_att, stats_field_goals_fg_pct, stats_field_goals_fg30_39pct, stats_field_goals_fg40_49pct, stats_field_goals_fg50plus_pct, stats_extra_point_attempts_xp_made, stats_extra_point_attempts_xp_att, stats_extra_point_attempts_xp_pct)
+```
+
+- Indexed games so everyone is scored based on playing all 16 games
+- `Golden Ratio`: a composite score including:
+   - Rushing yards 60% weight 
+   - Rushing td 40% weight
+- Top 50
+- Rookies: 
+  - Najee Harris (PIT) \#1 round draft pick 2021 (Tier 3: Rank 11)
+  - Trey Sermon (49er) 3rd round draft pick 2021
+```{r}
+# can rename and select at the same time
+rb_stats <- player_stats %>%
+  select(first_name = player_first_name, last_name = player_last_name, status =  player_current_roster_status, position = player_primary_position, current_team = player_current_team_abbreviation, games_played = stats_games_played, rush_yards = stats_rushing_rush_yards, rush_td = stats_rushing_rush_td) %>%
+  filter(position == "RB" & games_played > 1) %>% 
+  select(-position) %>%
+  mutate(games_index = games_played/16) %>%
+  relocate(games_index, .before = rush_yards) %>%
+  mutate(full_name = paste(first_name, last_name),
+         rush_yards = rush_yards/games_index, 
+         rush_td = rush_td/games_index, 
+         rush_yards_i = rush_yards/max(rush_yards),
+         rush_td_i = rush_td/max(rush_td), 
+         golden_ratio = (rush_yards_i*1.6)+(rush_td_i*1.4)) %>%
+  arrange(desc(golden_ratio)) %>%
+  mutate(rank = 1:length(golden_ratio)) %>%
+  relocate(rank) %>%
+  filter(rank <= 100) %>%
+  mutate_if(is.numeric, round, 2)
+  
+rb_stats_picks <- rb_stats %>%
+  select(full_name, rank, current_team, games_played, rush_yards, rush_td, golden_ratio) %>%
+  rename(Rank = rank, 
+         "Name" = full_name,
+         Team = current_team,
+         "Games Played" = games_played,
+         "Rushing Yards" = rush_yards, 
+         "Rushing TDs" = rush_td,
+         "Golden Ratio" = golden_ratio)
+
+#write.csv(rb_stats, "rb_picks.csv")
+
+reactable(rb_stats_picks, selection = "multiple", defaultPageSize = 50, highlight=TRUE, striped=TRUE)
+
+```
+
+# Rushing Game
+```{r}
+rb_stats_plot <- rb_stats %>%
+  filter(rank < 31)
+
+ggplot(rb_stats_plot, aes(rush_td, rush_yards, label = last_name)) +
+  geom_point() +
+  geom_text_repel() +
+  theme_bw() +
+  labs(x="Rushing TDs", y="Rushing Yards") +
+  easy_text_size(15)
+
+```
+
+<br>
+```{r}
+ggplot(rb_stats, aes(rush_yards)) +
+  geom_histogram(bins = 20, fill="navy")  +
+  theme_bw() +
+  labs(x="Rushing Yards") +
+  easy_text_size(15)
+```
+

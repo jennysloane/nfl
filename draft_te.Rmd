@@ -1,0 +1,160 @@
+---
+title: "Tight Ends"
+output: html_document
+---
+<style type="text/css">
+
+body {
+  font-size: 14pt;
+}
+
+h1 { /* Header 1 */
+  font-size: 34px;
+  color: lightcoral;
+  font-weight: bold;
+}
+</style>
+
+[FantasyPros Draft Pick](https://www.fantasypros.com/nfl/rankings/te-cheatsheets.php){target="_blank"}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message = FALSE)
+```
+
+```{r, include=FALSE}
+library(here)
+library(tidyverse) 
+library(janitor)
+library(httr)
+library(jsonlite)
+library(RCurl)
+library(glue)
+library(mysportsfeedsR)
+library(kableExtra)
+library(gt)
+library(ggeasy)
+library(shiny)
+library(reactable)
+library(ggrepel)
+
+setwd(here("../"))
+source("login_creds.R")
+```
+
+<!-- # API request -->
+```{r, include=FALSE}
+res = GET('https://api.mysportsfeeds.com/v2.0/pull/nfl/2020-2021-regular/player_stats_totals.json', 
+          add_headers(Authorization = paste("Basic", auth)))
+api_response <- content(res, as="text")
+api_response <- jsonlite::fromJSON(api_response, flatten=TRUE)
+
+player_stats <- api_response$playerStatsTotals %>%
+  as_tibble() %>%
+  clean_names()  %>%
+  select(first_name = player_first_name, last_name = player_last_name, position = player_primary_position, current_team = player_current_team_abbreviation, games_played = stats_games_played, rush_yards = stats_rushing_rush_yards, rush_td = stats_rushing_rush_td, receive_targ = stats_receiving_targets, receive_rec = stats_receiving_receptions, receive_yards = stats_receiving_rec_yards, receive_avg = stats_receiving_rec_average, receive_td = stats_receiving_rec_td, receive_lng = stats_receiving_rec_lng, receive_20plus = stats_receiving_rec20plus, receive_40plus = stats_receiving_rec40plus)
+```
+
+
+- Indexed games so everyone is scored based on playing all 16 games
+- `Golden Ratio`: a composite score including:
+   - Receiving yards 42% weight 
+   - Receiving td 42% weight 
+   - Total receptions 16% weight
+   - rush yards not included because max was only 26 yards
+- Top 50
+- Rookies: 
+  - Kyle Pitts (ATL) \#1 draft pick 2021 (Tier 1: Rank 5)
+```{r}
+wr_stats_explore <- player_stats %>%
+  select(first_name, last_name, position, current_team, games_played, receive_yards, receive_td, receive_rec, rush_yards, rush_td) %>%
+  filter(position == "TE") %>%
+   select(-position)
+
+# range(wr_stats_explore$rush_td)
+# range(wr_stats_explore$rush_yards)
+
+te_stats <- player_stats %>%
+  select(first_name, last_name, position, current_team, games_played, receive_yards, receive_td, receive_rec) %>%
+  filter(position == "TE") %>%
+   select(-position) %>%
+  mutate(games_index = games_played/16) %>%
+  relocate(games_index, .before = receive_yards) %>%
+  mutate(full_name = paste(first_name, last_name),
+         receive_yards = receive_yards/games_index, 
+         receive_td = receive_td/games_index, 
+         receive_rec = receive_rec/games_index,
+         receive_yards_i = receive_yards/max(receive_yards),
+         receive_td_i = receive_td/max(receive_td), 
+         receive_rec_i = receive_rec/max(receive_rec),
+         golden_ratio = (receive_yards_i*1.42)+(receive_td_i*1.42)+(receive_rec_i*1.16)) %>%
+  arrange(desc(golden_ratio)) %>%
+  select(full_name, last_name, current_team, games_played, receive_yards, receive_td, receive_rec, golden_ratio, full_name) %>%
+  mutate(rank = 1:length(golden_ratio)) %>%
+  relocate(rank) %>%
+  filter(rank <= 50) %>%
+  mutate_if(is.numeric, round, 2) 
+
+
+
+te_stats_picks <- te_stats %>%
+  select(-last_name) %>%
+  rename(Rank = rank, 
+         "Name" = full_name,
+         Team = current_team,
+         "Games Played" = games_played,
+         "Receiving Yards" = receive_yards, 
+         "Receiving TD" = receive_td,
+         "Receive Receptions" = receive_rec,
+         "Golden Ratio" = golden_ratio)
+
+#write.csv(te_stats_picks, "nfl/wr_picks.csv", row.names=FALSE)
+
+reactable(te_stats_picks, selection = "multiple", defaultPageSize = 50, highlight=TRUE, striped=TRUE)
+
+```
+
+# Receiving TDs and Yards
+```{r}
+te_stats_plot <- te_stats %>%
+  filter(rank < 31)
+
+ggplot(te_stats_plot, aes(receive_td, receive_yards, label = last_name)) +
+  geom_point() +
+  geom_text_repel() +
+  theme_bw() +
+  labs(x="Receiving TDs", y="Receiving Yards") +
+  easy_text_size(15)
+
+```
+
+<br>
+```{r}
+ggplot(te_stats, aes(receive_yards)) +
+  geom_histogram(bins = 20, fill="darkblue") +
+  theme_bw() +
+  labs(x="Receiving Yards") +
+  easy_text_size(15)
+```
+
+<br>
+```{r}
+ggplot(te_stats, aes(receive_td)) +
+  geom_histogram(bins = 20, fill="darkblue") +
+  theme_bw() +
+  labs(x="Receiving TDs") +
+  easy_text_size(15)
+```
+
+
+# \# of Receptions
+```{r}
+ggplot(te_stats, aes(receive_rec)) +
+  geom_histogram(bins = 20, fill="darkblue") +
+  theme_bw() +
+  labs(x="Number of Receptions") +
+  easy_text_size(15)
+```
+
+
+
+
