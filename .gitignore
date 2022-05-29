@@ -1,3 +1,6 @@
+# ignore secret folder
+/secret
+
 # History files
 .Rhistory
 .Rapp.history
